@@ -23,6 +23,25 @@ fn run() -> Result<(), Box<dyn Error>> {
         &in_port,
         "midir-read-input",
         move |stamp, message, _| {
+            let (status, channel) = (message[0] & 0xF0, message[0] & 0x0F);
+            let (note, volume) = (message[1] & 0x7F, message[2] & 0x7F);
+            match status {
+                0x80 => {
+                    // note-off
+                    println!(
+                        "note-off, note: {}, volume: {}, channel: {}",
+                        note, volume, channel
+                    );
+                }
+                0x90 => {
+                    // note-on
+                    println!(
+                        "note-on, note: {}, volume: {}, channel: {}",
+                        note, volume, channel
+                    );
+                }
+                _ => (),
+            }
             println!("{}: {:?} (len = {})", stamp, message, message.len());
         },
         (),
