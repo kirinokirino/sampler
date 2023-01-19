@@ -1,16 +1,24 @@
-use std::error::Error;
-use std::io::{stdin, stdout, Write};
-
 use midir::{Ignore, MidiInput, MidiInputPort};
 
+use std::error::Error;
+use std::io::{stdin, stdout, Write};
+use std::sync::mpsc;
+
 fn main() {
-    match run() {
+    let (tx, rx) = mpsc::channel::<u8>();
+    std::thread::spawn(move || {
+        for received in rx {
+            println!("Got: {}", received);
+        }
+    });
+
+    match run(Some(tx)) {
         Ok(_) => (),
         Err(err) => println!("Error: {}", err),
     }
 }
 
-fn run() -> Result<(), Box<dyn Error>> {
+fn run(sender: Option<mpsc::Sender<u8>>) -> Result<(), Box<dyn Error>> {
     let mut input = String::new();
 
     let mut midi_in = MidiInput::new("midir reading input")?;
@@ -19,6 +27,7 @@ fn run() -> Result<(), Box<dyn Error>> {
     let in_port_name = midi_in.port_name(&in_port)?;
 
     // _conn_in needs to be a named parameter, because it needs to be kept alive until the end of the scope
+    // My midi keyboard starts at note 36 and end at note 96.
     let _conn_in = midi_in.connect(
         &in_port,
         "midir-read-input",
@@ -39,10 +48,12 @@ fn run() -> Result<(), Box<dyn Error>> {
                         "note-on, note: {}, volume: {}, channel: {}",
                         note, volume, channel
                     );
+                    if let Some(sender) = &sender {
+                        sender.send(note);
+                    }
                 }
-                _ => (),
+                _ => println!("{}: {:?} (len = {})", stamp, message, message.len()),
             }
-            println!("{}: {:?} (len = {})", stamp, message, message.len());
         },
         (),
     )?;
