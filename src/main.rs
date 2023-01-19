@@ -4,21 +4,25 @@ use std::error::Error;
 use std::io::{stdin, stdout, Write};
 use std::sync::mpsc;
 
+mod sampler;
+use sampler::Sampler;
+
 fn main() {
     let (tx, rx) = mpsc::channel::<u8>();
+    let mut sampler = Sampler::new(rx);
+    sampler.add_one_shot(include_bytes!("t.wav"));
+
     std::thread::spawn(move || {
-        for received in rx {
-            println!("Got: {}", received);
-        }
+        sampler.run();
     });
 
-    match run(Some(tx)) {
+    match run_midi(Some(tx)) {
         Ok(_) => (),
         Err(err) => println!("Error: {}", err),
     }
 }
 
-fn run(sender: Option<mpsc::Sender<u8>>) -> Result<(), Box<dyn Error>> {
+fn run_midi(sender: Option<mpsc::Sender<u8>>) -> Result<(), Box<dyn Error>> {
     let mut input = String::new();
 
     let mut midi_in = MidiInput::new("midir reading input")?;
