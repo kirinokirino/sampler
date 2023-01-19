@@ -15,7 +15,7 @@ pub struct Sampler {
 
 impl Sampler {
     pub fn new(midi_receiver: mpsc::Receiver<u8>) -> Self {
-        let mut ctx = AudioContext::new();
+        let ctx = AudioContext::new();
 
         Self {
             rx: midi_receiver,
@@ -26,7 +26,7 @@ impl Sampler {
     }
 
     pub fn add_one_shot(&mut self, data: &[u8]) {
-        let sound = Sound::load(&self.ctx, include_bytes!("t.wav"));
+        let sound = Sound::load(&self.ctx, data);
         let params = PlaySoundParams {
             looped: false,
             volume: 0.1,
@@ -38,7 +38,7 @@ impl Sampler {
     pub fn run(&mut self) -> ! {
         loop {
             for received in &self.rx {
-                println!("Got: {}", received);
+                println!("Got: {received}");
                 if let Some(oneshot) = self
                     .one_shots
                     .get((received.checked_sub(MY_KEYBOARD_OFFSET).unwrap()) as usize)

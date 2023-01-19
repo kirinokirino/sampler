@@ -3,6 +3,8 @@ use midir::{Ignore, MidiInput, MidiInputPort};
 use std::error::Error;
 use std::io::{stdin, stdout, Write};
 use std::sync::mpsc;
+use std::thread::{sleep, spawn};
+use std::time::Duration;
 
 mod sampler;
 use sampler::Sampler;
@@ -12,13 +14,13 @@ fn main() {
     let mut sampler = Sampler::new(rx);
     sampler.add_one_shot(include_bytes!("t.wav"));
 
-    std::thread::spawn(move || {
+    spawn(move || {
         sampler.run();
     });
 
     match run_midi(Some(tx)) {
         Ok(_) => (),
-        Err(err) => println!("Error: {}", err),
+        Err(err) => println!("Error: {err}"),
     }
 }
 
@@ -42,15 +44,13 @@ fn run_midi(sender: Option<mpsc::Sender<u8>>) -> Result<(), Box<dyn Error>> {
                 0x80 => {
                     // note-off
                     println!(
-                        "note-off, note: {}, volume: {}, channel: {}",
-                        note, volume, channel
+                        "note-off, note: {note}, volume: {volume}, channel: {channel}"
                     );
                 }
                 0x90 => {
                     // note-on
                     println!(
-                        "note-on, note: {}, volume: {}, channel: {}",
-                        note, volume, channel
+                        "note-on, note: {note}, volume: {volume}, channel: {channel}"
                     );
                     if let Some(sender) = &sender {
                         sender.send(note);
@@ -58,13 +58,14 @@ fn run_midi(sender: Option<mpsc::Sender<u8>>) -> Result<(), Box<dyn Error>> {
                 }
                 _ => println!("{}: {:?} (len = {})", stamp, message, message.len()),
             }
+
+            sleep(Duration::from_millis(5));
         },
         (),
     )?;
 
     println!(
-        "Connection open, reading input from '{}' (press enter to exit) ...",
-        in_port_name
+        "Connection open, reading input from '{in_port_name}' (press enter to exit) ..."
     );
 
     input.clear();
@@ -95,7 +96,7 @@ pub fn choose_input_port(
             println!("\nAvailable input ports:");
             for (i, p) in in_ports.iter().enumerate() {
                 let name = midi_in.port_name(p).unwrap();
-                println!("{}: {}", i, name);
+                println!("{i}: {name}");
                 if name.contains(expected_port_name) {
                     println!("Found port {name}");
                     return Ok(p.clone());
