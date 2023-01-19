@@ -6,4 +6,5 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-quad-snd = { version = "0.2.7" }
+midir = "0.9.0"
+quad-snd = { git = "https://github.com/kirinokirino/quad-snd" }
